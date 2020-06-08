@@ -4,10 +4,7 @@
 # VotreNom (VotreMatricule) .~= À MODIFIER =~.
 ###
 
-from pdb import set_trace as dbg  # Utiliser dbg() pour faire un break dans votre code.
-
-import numpy as np
-
+import math
 
 #####
 # reviser: Fonction utilisée par AC3 afin de réduire le domaine de Xi en fonction des contraintes de Xj.
@@ -22,9 +19,17 @@ import numpy as np
 #
 # retour: Un tuple contenant un booléen indiquant si il y a eu des changements et le csp.
 ###
+
+
+
 def reviser(Xi, Xj, csp):
-    #TODO: .~= À COMPLÉTER =~.
-    return False, csp
+    change = False
+    for x in csp.domaines[Xi]:
+        if len(csp.domaines[Xj]) == 1 and csp.domaines[Xj][0] == x:
+            csp.domaines[Xi].remove(x)
+            change = True
+
+    return change, csp
 
 
 #####
@@ -37,7 +42,17 @@ def reviser(Xi, Xj, csp):
 # retour: Un tuple contenant le csp optimisé et un booléen indiquant si aucune contrainte n'est violée.
 ###
 def AC3(csp):
-    #TODO: .~= À COMPLÉTER =~.
+    file_arcs = csp.arcs()
+    while len(file_arcs) > 0:
+        Xi, Xj = file_arcs.pop(0)
+        change, csp = reviser(Xi, Xj, csp)
+        if change:
+            if len(csp.domaines[Xi]) == 0:
+                return None, False
+            for Xk in csp.contraintes[Xi]:
+                if Xk != Xj:
+                    y = (Xk, Xi)
+                    file_arcs.append(y)
     return csp, True
 
 
@@ -57,9 +72,16 @@ def AC3(csp):
 # retour: Un booléean indiquant si l'affectation de la valeur v à la case X est légale.
 ###
 def est_compatible(X, v, assignations, csp):
-    #TODO: .~= À COMPLÉTER =~.
+    for k in csp.contraintes[X]:
+        if k in assignations.keys() and assignations[k] == v:
+            return False
     return True
 
+def var_non_assigne(assignations, csp):
+    for var in csp.variables:
+        if var not in assignations.keys():
+            return var
+    return None
 
 #####
 # backtrack : Fonction s'occupant de trouver les assignations manquantes de la grille de Sudoku
@@ -74,8 +96,21 @@ def est_compatible(X, v, assignations, csp):
 # retour: Le dictionnaire des assignations (case => valeur)
 ###
 def backtrack(assignations, csp):
-    #TODO: .~= À COMPLÉTER =~.
-    return assignations
+    if len(assignations.keys()) == 81:
+        return assignations
+    X = var_non_assigne(assignations, csp)
+    for v in csp.domaines[X]:
+        if est_compatible(X, v, assignations, csp):
+            assignations[X] = v
+            cspEtoile = csp.copy()
+            cspEtoile.domaines[X] = [v]
+            cspEtoile, ok = AC3(cspEtoile)
+            if ok:
+                resultat = backtrack(assignations, cspEtoile)
+                if resultat is not None:
+                    return resultat
+            assignations.pop(X)
+    return None
 
 
 #####
@@ -90,5 +125,4 @@ def backtrack(assignations, csp):
 # retour: Le dictionnaire des assignations (case => valeur)
 ###
 def backtracking_search(csp):
-    #TODO: .~= À COMPLÉTER =~.
     return backtrack({}, csp)
